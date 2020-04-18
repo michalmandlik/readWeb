@@ -1,5 +1,9 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
+# The first step is always the same: import all necessary components:
+import smtplib
+from socket import gaierror
+
 
 driver = webdriver.Safari()
 
@@ -16,3 +20,23 @@ for title in soup.select(".text-wrap"):
     print(num)
 
 print(i)
+print()
+
+# creates SMTP session
+s = smtplib.SMTP('smtp.gmail.com:587')
+s.ehlo()
+
+# start TLS for security
+s.starttls()
+
+# Authentication
+s.login("michalmandlik@gmail.com", "b626b626")
+
+# message to be sent
+message = "Message_you_need_to_send"
+
+# sending the mail
+s.sendmail("michalmandlik@gmail.com", "michalmandlik@gmail.com", message)
+
+# terminating the session
+s.quit()
