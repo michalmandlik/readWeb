@@ -9,7 +9,7 @@ driver = webdriver.Safari()
 
 # driver.get("https://www.sreality.cz/hledani/prodej/byty/brno?stari=mesic")
 driver.get(
-    "https://www.sreality.cz/hledani/prodej/byty/praha-7?velikost=1%2B1,2%2Bkk,2%2B1,3%2Bkk&stari=mesic&cena-od=0&cena-do=7000000&bez-aukce=1")
+    "https://www.sreality.cz/hledani/prodej/byty/praha-7?velikost=2%2Bkk,2%2B1,1%2B1,3%2Bkk&cena-od=0&cena-do=7000000&bez-aukce=1")
 soup = BeautifulSoup(driver.page_source, "html.parser")
 driver.quit()
 
@@ -22,6 +22,7 @@ for title in soup.select(".text-wrap"):
 print(i)
 print()
 
+
 # creates SMTP session
 s = smtplib.SMTP('smtp.gmail.com:587')
 s.ehlo()
@@ -33,7 +34,7 @@ s.starttls()
 s.login("michalmandlik@gmail.com", "b626b626")
 
 # message to be sent
-message = "Message_you_need_to_send"
+message = str(i)  #'Message_you_need_to_send'
 
 # sending the mail
 s.sendmail("michalmandlik@gmail.com", "michalmandlik@gmail.com", message)
