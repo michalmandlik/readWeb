@@ -1,10 +1,19 @@
+from typing import List, Any
 from bs4 import BeautifulSoup
 from selenium import webdriver
+import random
 # The first step is always the same: import all necessary components:
 import smtplib
+from email.mime.text import MIMEText
 from socket import gaierror
 
+#debug mode
+DEBUG_MODE = 1
 
+#fileName
+fileName = 'offers.log'
+
+# get information from sreality
 driver = webdriver.Safari()
 
 # driver.get("https://www.sreality.cz/hledani/prodej/byty/brno?stari=mesic")
@@ -13,31 +22,84 @@ driver.get(
 soup = BeautifulSoup(driver.page_source, "html.parser")
 driver.quit()
 
-i = 0
+listCurrentOffers = []      # list of current offers
+numCurrentOffers = 0           #
 for title in soup.select(".text-wrap"):
-    i = i + 1
+    numCurrentOffers = numCurrentOffers + 1
     num = "https://www.sreality.cz" + title.select_one(".title").get('href')
-    print(num)
+    listCurrentOffers.append(num)
+    #print(num)
 
-print(i)
+#print(numCurrentOffers)
+#print(listCurrentOffers)
+
+# debug mode
+if DEBUG_MODE:
+    numCurrentOffers = numCurrentOffers + 1
+    listCurrentOffers.append(str(random.random()))
+
+
+
+
+# load data from a log
+with open(fileName) as f:
+    listLoggedData = f.read().splitlines()
+
+print(listLoggedData)
+print(listCurrentOffers)
+
+# compare log against current loaded data
+listNewOffers = []      # offers which are not in the offers.log
+for currentItem in listCurrentOffers:
+    isInTheList = 0      # set the flag to 0 as default value
+    for loggedItem in listLoggedData:
+        # compare strings
+        isEqual = currentItem == loggedItem
+        if isEqual:
+            isInTheList = 1     # if the item is in the list
+
+    if not(isInTheList):
+        print('Item ', currentItem, ' is not in the logged list')
+        listNewOffers.append(currentItem)
+    else:
+        print('Item ', currentItem, ' is in the logged list')
+
 print()
+#print(listNewOffers)
 
+# update log
+if listNewOffers:
+    print('New offers')
 
-# creates SMTP session
-s = smtplib.SMTP('smtp.gmail.com:587')
-s.ehlo()
+    # tmp for now - save current offers to the log
+    f = open(fileName, 'w')
+    s1 = '\n'.join(listCurrentOffers)
+    f.write(s1)
+    f.close()
+else:
+    print('No new offers')
 
-# start TLS for security
-s.starttls()
+if 0:
+    # creates SMTP session
+    s = smtplib.SMTP('smtp.gmail.com:587')
+    s.ehlo()
 
-# Authentication
-s.login("michalmandlik@gmail.com", "b626b626")
+    # start TLS for security
+    s.starttls()
 
-# message to be sent
-message = str(i)  #'Message_you_need_to_send'
+    # Authentication
+    s.login("mmachecker@gmail.com", "klokanBarezi")
 
-# sending the mail
-s.sendmail("michalmandlik@gmail.com", "michalmandlik@gmail.com", message)
+    # message to be sent
 
-# terminating the session
-s.quit()
+    outS = '     '.join(listCurrentOffers)
+    msg = MIMEText(outS)
+    msg['Subject'] = 'Nove reality'
+    msg['From'] = 'mmaChecker@gmail.com'
+    msg['To'] = 'michalmandlik@gmail.com'
+
+    # sending the mail
+    s.sendmail("mmachecker@gmail.com", "michalmandlik@gmail.com", msg.as_string(msg))
+
+    # terminating the session
+    s.quit()
