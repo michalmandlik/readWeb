@@ -7,14 +7,16 @@ import smtplib
 from email.mime.text import MIMEText
 from socket import gaierror
 
-#debug mode
-DEBUG_MODE = 1
+# version = 1..0.0.0
 
-#fileName
+# debug mode
+DEBUG_MODE = 0      # enable the prints and add extra item to the offer list
+
+# fileName
 fileName = 'offers.log'
 
 # get information from sreality
-driver = webdriver.Safari()
+driver = webdriver.Safari()     # TODO support only Safari browser
 
 # driver.get("https://www.sreality.cz/hledani/prodej/byty/brno?stari=mesic")
 driver.get(
@@ -22,31 +24,27 @@ driver.get(
 soup = BeautifulSoup(driver.page_source, "html.parser")
 driver.quit()
 
-listCurrentOffers = []      # list of current offers
-numCurrentOffers = 0           #
+listCurrentOffers = []          # list of current offers
+numCurrentOffers = 0            #
 for title in soup.select(".text-wrap"):
     numCurrentOffers = numCurrentOffers + 1
     num = "https://www.sreality.cz" + title.select_one(".title").get('href')
     listCurrentOffers.append(num)
-    #print(num)
 
-#print(numCurrentOffers)
-#print(listCurrentOffers)
-
-# debug mode
 if DEBUG_MODE:
     numCurrentOffers = numCurrentOffers + 1
-    listCurrentOffers.append(str(random.random()))
-
-
+    listCurrentOffers.append(str(random.random()))  # random string added to offer list
+    print(numCurrentOffers)
+    print(listCurrentOffers)
 
 
 # load data from a log
-with open(fileName) as f:
+with open(fileName) as f:       # TODO issue once the file doesn't exist
     listLoggedData = f.read().splitlines()
 
-print(listLoggedData)
-print(listCurrentOffers)
+if DEBUG_MODE:
+    print(listLoggedData)
+    print(listCurrentOffers)
 
 # compare log against current loaded data
 listNewOffers = []      # offers which are not in the offers.log
@@ -58,28 +56,31 @@ for currentItem in listCurrentOffers:
         if isEqual:
             isInTheList = 1     # if the item is in the list
 
-    if not(isInTheList):
-        print('Item ', currentItem, ' is not in the logged list')
+    if not isInTheList:
         listNewOffers.append(currentItem)
+        if DEBUG_MODE:
+            print('Item ', currentItem, ' is not in the logged list')
     else:
-        print('Item ', currentItem, ' is in the logged list')
+        if DEBUG_MODE:
+            print('Item ', currentItem, ' is in the logged list')
 
-print()
-#print(listNewOffers)
+if DEBUG_MODE:
+    print()
+    print('list of new offers: ', '\n'.join(listNewOffers))
+    print()
 
 # update log
 if listNewOffers:
-    print('New offers')
+    print('New offer(s) found')
 
-    # tmp for now - save current offers to the log
-    f = open(fileName, 'w')
-    s1 = '\n'.join(listCurrentOffers)
+    # save new offers to the log file
+    f = open(fileName, 'a')
+    f.write('\n')
+    s1 = '\n'.join(listNewOffers)
     f.write(s1)
     f.close()
-else:
-    print('No new offers')
 
-if 0:
+    # send an email
     # creates SMTP session
     s = smtplib.SMTP('smtp.gmail.com:587')
     s.ehlo()
@@ -91,8 +92,7 @@ if 0:
     s.login("mmachecker@gmail.com", "klokanBarezi")
 
     # message to be sent
-
-    outS = '     '.join(listCurrentOffers)
+    outS = '\n'.join(listNewOffers)
     msg = MIMEText(outS)
     msg['Subject'] = 'Nove reality'
     msg['From'] = 'mmaChecker@gmail.com'
@@ -103,3 +103,8 @@ if 0:
 
     # terminating the session
     s.quit()
+
+    print('Email with offers sent')
+else:
+    if DEBUG_MODE:
+        print('No new offers')
