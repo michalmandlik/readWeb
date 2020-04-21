@@ -16,7 +16,10 @@ DEBUG_MODE = 0      # enable the prints and add extra item to the offer list
 fileName = 'offers.log'
 
 # get information from sreality
-driver = webdriver.Safari()     # TODO support only Safari browser
+#driver = webdriver.Safari()     # TODO support only Safari browser
+#driver = webdriver.Firefox()
+driver = webdriver.Chrome("/usr/local/bin/chromedriver")
+#driver = webdriver.Chrome('./chromedriver')  # Optional argument, if not specified will search path.
 
 # driver.get("https://www.sreality.cz/hledani/prodej/byty/brno?stari=mesic")
 driver.get(
