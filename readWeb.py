@@ -5,109 +5,162 @@ import random
 # The first step is always the same: import all necessary components:
 import smtplib
 from email.mime.text import MIMEText
+import time
+
 from socket import gaierror
 
-# version = 1..0.0.0
+# version = 1.1.0.0
+
+# log version 1.1.0.0
+# added mutliple pages
+
+sleepTime = 600     # [s]
+cntChecker = 0
+NUM_CHECKER = 5
 
 # debug mode
-DEBUG_MODE = 0      # enable the prints and add extra item to the offer list
+DEBUG_MODE = 0  # enable the prints and add extra item to the offer list
 
 # fileName
 fileName = 'offers.log'
 
-# get information from sreality
-#driver = webdriver.Safari()     # TODO support only Safari browser
-#driver = webdriver.Firefox()
-driver = webdriver.Chrome("/usr/local/bin/chromedriver")
-#driver = webdriver.Chrome('./chromedriver')  # Optional argument, if not specified will search path.
+# maximum number of pages
+MAX_NUM_PAGES = 5
 
-# driver.get("https://www.sreality.cz/hledani/prodej/byty/brno?stari=mesic")
-driver.get(
-    "https://www.sreality.cz/hledani/prodej/byty/praha-7?velikost=2%2Bkk,2%2B1,1%2B1,3%2Bkk&cena-od=0&cena-do=7000000&bez-aukce=1")
-soup = BeautifulSoup(driver.page_source, "html.parser")
-driver.quit()
+url = "https://www.sreality.cz/hledani/prodej/byty/praha-7?velikost=2%2Bkk,2%2B1,1%2B1,3%2Bkk&cena-od=0&cena-do=7000000&bez-aukce=1"
 
-listCurrentOffers = []          # list of current offers
-numCurrentOffers = 0            #
-for title in soup.select(".text-wrap"):
-    numCurrentOffers = numCurrentOffers + 1
-    num = "https://www.sreality.cz" + title.select_one(".title").get('href')
-    listCurrentOffers.append(num)
+while True:
 
-if DEBUG_MODE:
-    numCurrentOffers = numCurrentOffers + 1
-    listCurrentOffers.append(str(random.random()))  # random string added to offer list
-    print(numCurrentOffers)
-    print(listCurrentOffers)
+    cntChecker = cntChecker + 1
+    time.sleep(sleepTime)
+    localtime = time.localtime()
+    result = time.strftime("%I:%M:%S %p", localtime)
+    print(result)
 
+    # get information from sreality
+    #driver = webdriver.Safari()     # TODO support only Safari browser
+    #driver = webdriver.Firefox()
+    #driver = webdriver.Chrome("/usr/local/bin/chromedriver")
+    #driver = webdriver.Chrome('./chromedriver')  # Optional argument, if not specified will search path.
 
-# load data from a log
-with open(fileName) as f:       # TODO issue once the file doesn't exist
-    listLoggedData = f.read().splitlines()
+    for cntPage in range(MAX_NUM_PAGES):
+        # get information from sreality
+        driver = webdriver.Safari()  # TODO support only Safari browser
+        if cntPage == 0:
+            # driver.get("https://www.sreality.cz/hledani/prodej/byty/brno?stari=mesic")
+            driver.get(url)
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+        else:
+            url = url + "&strana=" + str(cntPage)
+            driver.get(url)
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+        driver.quit()
 
-if DEBUG_MODE:
-    print(listLoggedData)
-    print(listCurrentOffers)
+        listCurrentOffers = []          # list of current offers
+        numCurrentOffers = 0            #
+        for title in soup.select(".text-wrap"):
+            numCurrentOffers = numCurrentOffers + 1
+            num = "https://www.sreality.cz" + title.select_one(".title").get('href')
+            listCurrentOffers.append(num)
 
-# compare log against current loaded data
-listNewOffers = []      # offers which are not in the offers.log
-for currentItem in listCurrentOffers:
-    isInTheList = 0      # set the flag to 0 as default value
-    for loggedItem in listLoggedData:
-        # compare strings
-        isEqual = currentItem == loggedItem
-        if isEqual:
-            isInTheList = 1     # if the item is in the list
+    if DEBUG_MODE:
+        numCurrentOffers = numCurrentOffers + 1
+        listCurrentOffers.append(str(random.random()))  # random string added to offer list
+        print(numCurrentOffers)
+        print(listCurrentOffers)
 
-    if not isInTheList:
-        listNewOffers.append(currentItem)
-        if DEBUG_MODE:
-            print('Item ', currentItem, ' is not in the logged list')
+    # load data from a log
+    with open(fileName) as f:       # TODO issue once the file doesn't exist
+        listLoggedData = f.read().splitlines()
+
+    if DEBUG_MODE:
+        print(listLoggedData)
+        print(listCurrentOffers)
+
+    # compare log against current loaded data
+    listNewOffers = []      # offers which are not in the offers.log
+    for currentItem in listCurrentOffers:
+        isInTheList = 0      # set the flag to 0 as default value
+        for loggedItem in listLoggedData:
+            # compare strings
+            isEqual = currentItem == loggedItem
+            if isEqual:
+                isInTheList = 1     # if the item is in the list
+
+        if not isInTheList:
+            listNewOffers.append(currentItem)
+            if DEBUG_MODE:
+                print('Item ', currentItem, ' is not in the logged list')
+        else:
+            if DEBUG_MODE:
+                print('Item ', currentItem, ' is in the logged list')
+
+    if DEBUG_MODE:
+        print()
+        print('list of new offers: ', '\n'.join(listNewOffers))
+        print()
+
+    # update log
+    if listNewOffers:
+        print('New offer(s) found')
+
+        # save new offers to the log file
+        f = open(fileName, 'a')
+        f.write('\n')
+        s1 = '\n'.join(listNewOffers)
+        f.write(s1)
+        f.close()
+
+        # send an email
+        # creates SMTP session
+        s = smtplib.SMTP('smtp.gmail.com:587')
+        s.ehlo()
+
+        # start TLS for security
+        s.starttls()
+
+        # Authentication
+        s.login("mmachecker@gmail.com", "klokanBarezi")
+
+        # message to be sent
+        outS = '\n'.join(listNewOffers)
+        msg = MIMEText(outS)
+        msg['Subject'] = 'Nove reality'
+        msg['From'] = 'mmaChecker@gmail.com'
+        msg['To'] = 'michalmandlik@gmail.com'
+
+        # sending the mail
+        s.sendmail("mmachecker@gmail.com", "michalmandlik@gmail.com", msg.as_string(msg))
+
+        # terminating the session
+        s.quit()
+
+        print('Email with offers sent')
     else:
         if DEBUG_MODE:
-            print('Item ', currentItem, ' is in the logged list')
+            print('No new offers')
 
-if DEBUG_MODE:
-    print()
-    print('list of new offers: ', '\n'.join(listNewOffers))
-    print()
+    if cntChecker == NUM_CHECKER:
+        cntChecker = 0
+        # creates SMTP session
+        s = smtplib.SMTP('smtp.gmail.com:587')
+        s.ehlo()
 
-# update log
-if listNewOffers:
-    print('New offer(s) found')
+        # start TLS for security
+        s.starttls()
 
-    # save new offers to the log file
-    f = open(fileName, 'a')
-    f.write('\n')
-    s1 = '\n'.join(listNewOffers)
-    f.write(s1)
-    f.close()
+        # Authentication
+        s.login("mmachecker@gmail.com", "klokanBarezi")
 
-    # send an email
-    # creates SMTP session
-    s = smtplib.SMTP('smtp.gmail.com:587')
-    s.ehlo()
+        # message to be sent
+        outS = '\n'.join(listNewOffers)
+        msg = MIMEText(outS)
+        msg['Subject'] = 'Safari checker is running'
+        msg['From'] = 'mmaChecker@gmail.com'
+        msg['To'] = 'michalmandlik@gmail.com'
 
-    # start TLS for security
-    s.starttls()
+        # sending the mail
+        s.sendmail("mmachecker@gmail.com", "michalmandlik@gmail.com", msg.as_string(msg))
 
-    # Authentication
-    s.login("mmachecker@gmail.com", "klokanBarezi")
-
-    # message to be sent
-    outS = '\n'.join(listNewOffers)
-    msg = MIMEText(outS)
-    msg['Subject'] = 'Nove reality'
-    msg['From'] = 'mmaChecker@gmail.com'
-    msg['To'] = 'michalmandlik@gmail.com'
-
-    # sending the mail
-    s.sendmail("mmachecker@gmail.com", "michalmandlik@gmail.com", msg.as_string(msg))
-
-    # terminating the session
-    s.quit()
-
-    print('Email with offers sent')
-else:
-    if DEBUG_MODE:
-        print('No new offers')
+        # terminating the session
+        s.quit()
