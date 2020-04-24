@@ -12,11 +12,11 @@ from socket import gaierror
 # version = 1.1.0.0
 
 # log version 1.1.0.0
-# added mutliple pages
+# added multiple pages
 
 sleepTime = 600     # [s]
 cntChecker = 0
-NUM_CHECKER = 5
+NUM_CHECKER = 5     # num iteration before control email is sent
 
 # debug mode
 DEBUG_MODE = 0  # enable the prints and add extra item to the offer list
@@ -63,19 +63,9 @@ while True:
             num = "https://www.sreality.cz" + title.select_one(".title").get('href')
             listCurrentOffers.append(num)
 
-    if DEBUG_MODE:
-        numCurrentOffers = numCurrentOffers + 1
-        listCurrentOffers.append(str(random.random()))  # random string added to offer list
-        print(numCurrentOffers)
-        print(listCurrentOffers)
-
     # load data from a log
     with open(fileName) as f:       # TODO issue once the file doesn't exist
         listLoggedData = f.read().splitlines()
-
-    if DEBUG_MODE:
-        print(listLoggedData)
-        print(listCurrentOffers)
 
     # compare log against current loaded data
     listNewOffers = []      # offers which are not in the offers.log
@@ -89,16 +79,6 @@ while True:
 
         if not isInTheList:
             listNewOffers.append(currentItem)
-            if DEBUG_MODE:
-                print('Item ', currentItem, ' is not in the logged list')
-        else:
-            if DEBUG_MODE:
-                print('Item ', currentItem, ' is in the logged list')
-
-    if DEBUG_MODE:
-        print()
-        print('list of new offers: ', '\n'.join(listNewOffers))
-        print()
 
     # update log
     if listNewOffers:
@@ -118,27 +98,19 @@ while True:
 
         # start TLS for security
         s.starttls()
-
         # Authentication
         s.login("mmachecker@gmail.com", "klokanBarezi")
-
         # message to be sent
         outS = '\n'.join(listNewOffers)
         msg = MIMEText(outS)
         msg['Subject'] = 'Nove reality'
         msg['From'] = 'mmaChecker@gmail.com'
         msg['To'] = 'michalmandlik@gmail.com'
-
         # sending the mail
         s.sendmail("mmachecker@gmail.com", "michalmandlik@gmail.com", msg.as_string(msg))
-
         # terminating the session
         s.quit()
-
         print('Email with offers sent')
-    else:
-        if DEBUG_MODE:
-            print('No new offers')
 
     if cntChecker == NUM_CHECKER:
         cntChecker = 0
