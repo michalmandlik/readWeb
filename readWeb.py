@@ -153,7 +153,7 @@ while True:
         s.login("mmachecker@gmail.com", "klokanBarezi")
 
         # message to be sent
-        outS = '\n'.join(listNewOffers)
+        outS = 'Safari checker is running'
         msg = MIMEText(outS)
         msg['Subject'] = 'Safari checker is running'
         msg['From'] = 'mmaChecker@gmail.com'
